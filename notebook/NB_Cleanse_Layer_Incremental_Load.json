@@ -1,0 +1,659 @@
+{
+	"name": "NB_Cleanse_Layer_Incremental_Load",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "Sparkpool",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "5e7bd3c6-fccc-491f-9917-9c6a65235ab6"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"enableDebugMode": false,
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/35c7c256-febc-4c53-82a5-71e8573a3c24/resourceGroups/rg-pmishra-training-001/providers/Microsoft.Synapse/workspaces/trainparmish/bigDataPools/Sparkpool",
+				"name": "Sparkpool",
+				"type": "Spark",
+				"endpoint": "https://trainparmish.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/Sparkpool",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
+				},
+				"sparkVersion": "3.3",
+				"nodeCount": 10,
+				"cores": 4,
+				"memory": 28,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# <h1><b><center>Raw To Cleanse Layer</center></b></h1>\r\n",
+					"\r\n",
+					"## Initialise"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# from pyspark.sql import SparkSession\r\n",
+					"\r\n",
+					"# spark = SparkSession.builder \\\r\n",
+					"#     .appName(\"MySparkJob\") \\\r\n",
+					"#     .config(\"spark.executor.cores\", \"12\") \\\r\n",
+					"#     .getOrCreate()"
+				],
+				"execution_count": 26
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from pyspark.sql import SparkSession\r\n",
+					"from pyspark.sql.types import *\r\n",
+					"from pyspark.sql.functions import *\r\n",
+					"from pyspark.sql import Row\r\n",
+					"from pyspark.sql.types import StringType,StructType\r\n",
+					"from datetime import *\r\n",
+					"from delta.tables import *\r\n",
+					"from pyspark.sql import DataFrame\r\n",
+					"import pandas as pd\r\n",
+					"import pyspark.sql.functions as F\r\n",
+					"from delta.tables import *\r\n",
+					"from delta.tables import DeltaTable\r\n",
+					"import copy\r\n",
+					"from pyspark.sql.functions import lit\r\n",
+					"\r\n",
+					"\r\n",
+					"#Debug\r\n",
+					"Debug = True\r\n",
+					"NoOfRecordsToDisplay = 1000\r\n",
+					"\r\n",
+					"#Set Spark Config\r\n",
+					"spark.conf.set(\"spark.sql.sources.partitionOverwriteMode\",\"dynamic\")\r\n",
+					"spark.conf.set(\"spark.databricks.delta.properties.defaults.autoOptimize.optimizeWrite\", \"true\")\r\n",
+					"spark.conf.set(\"spark.databricks.delta.properties.defaults.autoOptimize.autoCompact\", \"true\")\r\n",
+					"spark.conf.set(\"spark.sql.autoBroadcastJoinThreshold\",10485760)\r\n",
+					"spark.conf.set(\"spark.sql.adaptive.enabled\",\"true\")\r\n",
+					"spark.conf.set(\"spark.sql.adaptive.skewJoin.enabled\",\"true\")\r\n",
+					"spark.conf.set(\"spark.sql.shuffle.partitions\", sc.defaultParallelism * 2)\r\n",
+					"#Config needed to read datetime column values without error [Don't remove]\r\n",
+					"spark.conf.set(\"spark.sql.legacy.parquet.int96RebaseModeInRead\", \"CORRECTED\")\r\n",
+					"spark.conf.set(\"spark.sql.legacy.parquet.int96RebaseModeInWrite\", \"CORRECTED\")\r\n",
+					"spark.conf.set(\"spark.sql.legacy.parquet.datetimeRebaseModeInRead\", \"CORRECTED\")\r\n",
+					"spark.conf.set(\"spark.sql.legacy.parquet.datetimeRebaseModeInWrite\", \"CORRECTED\")"
+				],
+				"execution_count": 1
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# #Parameters\r\n",
+					"# RawContainerName = ''\r\n",
+					"# RawStorageAccountName = ''\r\n",
+					"# SourceSystemName = ''\r\n",
+					"# RawRelativePath = ''\r\n",
+					"# FolderName = ''\r\n",
+					"# RawFileName = ''\r\n",
+					"# CleanseContainerName = ''\r\n",
+					"# CleanseStorageAccountName = ''\r\n",
+					"# CleanRelativePath = ''\r\n",
+					"# HistoryRelativePath = ''\r\n",
+					"# SourceNonKeyColumnNames = ''\r\n",
+					"# SourceBusinessKeys  = ''\r\n",
+					""
+				],
+				"execution_count": 28
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# # #Parameters\r\n",
+					"# RawContainerName = 'rawlayer'\r\n",
+					"# RawStorageAccountName = 'azsandboxweudlslake001'\r\n",
+					"# SourceSystemName = 'AX'\r\n",
+					"# RawRelativePath = '/Inbound/'\r\n",
+					"# FolderName = 'LogisticsLocation'\r\n",
+					"# CleanseContainerName = 'cleansedlayer'\r\n",
+					"# CleanseStorageAccountName = 'azsandboxweudlslake001'\r\n",
+					"# CleanRelativePath = '/Clean/'\r\n",
+					"# HistoryRelativePath = '/History/'\r\n",
+					"# All_Source_Column_Names = 'RECID,CREATEDDATETIME,DESCRIPTION,DUNSNUMBERRECID,ISPOSTALADDRESS,LOCATIONID,MODIFIEDBY,MODIFIEDDATETIME,PARENTLOCATION,PARTITION,RECVERSION'\r\n",
+					"# SourceKeysWithNotNullCheck = 'RECID IS NOT NULL'\r\n",
+					"# # SourceKeysWithNotNullCheck = 'RECID'\r\n",
+					"# SourceSystem = 'SourceSystem'\r\n",
+					"# LND_File_Timestamp ='2023-08-22 12:56:54.000'\r\n",
+					"# RawFileName = 'LogisticsLocation_Data_2023.34.01_02.34.26_1.parquet'\r\n",
+					"# #Need to pass#\r\n",
+					"# CleanseContainerName ='cleansedlayer'\r\n",
+					"# SourceBusinessKeys = 'RECID'\r\n",
+					"\r\n",
+					"# # OpenDate\r\n",
+					"# # OpenDateValue = \"2023-08-22T02:39:10Z\""
+				],
+				"execution_count": 2
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"SourceTableName --> FolderName\r\n",
+					"DF_SourceRaw --> DF_Raw\r\n",
+					"registerTempTable --> createOrReplaceTempView\r\n",
+					""
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### Read Raw Data"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"# Reading Raw File \r\n",
+					"RawADLSPath = 'abfss://%s@%s.dfs.core.windows.net/%s%s/%s' % (RawContainerName, RawStorageAccountName,SourceSystemName, RawRelativePath, FolderName)\r\n",
+					"print(RawADLSPath)\r\n",
+					"\r\n",
+					"\r\n",
+					"# #Read with basePath option (Partition Discovery)\r\n",
+					"DF_Raw = spark.read.option(\"basePath\", RawADLSPath).parquet(RawADLSPath + \"/*/*/*/\"+ RawFileName)\r\n",
+					"\r\n",
+					"# display(DF_Raw)\r\n",
+					"DF_Raw.printSchema()"
+				],
+				"execution_count": 4
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"**Row Count Check**"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"# # If you want to exit a value from the notebook, use the below command\r\n",
+					"# mssparkutils.notebook.exit(SourceRowCount) \r\n",
+					"\r\n",
+					"DF_Raw.cache()\r\n",
+					"SourceRowCount = DF_Raw.count()\r\n",
+					"print (SourceRowCount)\r\n",
+					"\r\n",
+					"DF_Rawwithlnd = DF_Raw.withColumn(\"LND_File_Timestamp\" ,lit(LND_File_Timestamp))\r\n",
+					"# display(DF_Rawwithlnd)\r\n",
+					"DF_Rawwithlnd.printSchema()\r\n",
+					"\r\n",
+					"#Generate Temp Table for raw file\r\n",
+					"DF_Rawwithlnd.createOrReplaceTempView(f\"TempRawTable_{FolderName}\")\r\n",
+					"new_data_df = spark.table(f\"TempRawTable_{FolderName}\")\r\n",
+					"\r\n",
+					"# print(f\"TempRawTable_{FolderName}\")\r\n",
+					"# spark.sql(\"select * from TempRawTable_LogisticsLocation\").show()\r\n",
+					"# new_data_df = spark.table(\"TempRawTable_LogisticsLocation\")\r\n",
+					"# display(new_data_df)\r\n",
+					"# if Debug == True:\r\n",
+					"#     print(\"RawADLSPath:\", RawADLSPath)\r\n",
+					"#     print(\"SourceRowCount:\", SourceRowCount)"
+				],
+				"execution_count": 5
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"**Read Cleansed Data**"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"#Set Curated filepath \r\n",
+					"CleansedADLSPath = 'abfss://%s@%s.dfs.core.windows.net/%s%s%s/' % (CleanseContainerName, CleanseStorageAccountName, SourceSystemName, CleanRelativePath, FolderName)\r\n",
+					"\r\n",
+					"#CleanRecordsADLSPath = 'abfss://%s@%s.dfs.core.windows.net/%s%s%s/' % (CleanseContainerName, CleanseStorageAccountName, SourceSystemName, CleanRelativePath, FolderName)\r\n",
+					"print(CleansedADLSPath)\r\n",
+					"\r\n",
+					"\r\n",
+					"#Verify if delta table exists\r\n",
+					"try:\r\n",
+					"    NoDeltaTable = False\r\n",
+					"    Result = mssparkutils.fs.ls(CleansedADLSPath + \"/_delta_log\")\r\n",
+					"\r\n",
+					"except:\r\n",
+					"    NoDeltaTable = True     \r\n",
+					"\r\n",
+					"#Check if Delta Table exists\r\n",
+					"if NoDeltaTable == False:\r\n",
+					"    #Define the Delta Table\r\n",
+					"    DT_Cleansed = DeltaTable.forPath(spark, CleansedADLSPath)\r\n",
+					"    #Define the Dataframe\r\n",
+					"    DF_Cleansed = spark.read.format(\"delta\").load(CleansedADLSPath)\r\n",
+					"    #Register the Temp Table\r\n",
+					"    DF_Cleansed.registerTempTable(f\"TempTable_{FolderName}Cleansed\")\r\n",
+					"\r\n",
+					"#Display Result\r\n",
+					"if Debug == True:\r\n",
+					"    print(\"NoDeltaTable:\", NoDeltaTable)"
+				],
+				"execution_count": 6
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# tableName = f\"TempTable_{FolderName}Cleansed\"\r\n",
+					"DF_Cleansed.registerTempTable(f\"TempTable_{FolderName}Cleansed\")\r\n",
+					"# print(f\"TempTable_{FolderName}Cleansed\")\r\n",
+					"\r\n",
+					"#### to view the target data before upsert#######\r\n",
+					"cleandf = spark.table(f\"TempTable_{FolderName}Cleansed\")\r\n",
+					"# cleandf.show()\r\n",
+					"\r\n",
+					"####register table to view#####\r\n",
+					"cleandf.createOrReplaceTempView(f\"TempcleansedTable_{FolderName}\")\r\n",
+					"spark.sql(f\"select * from TempcleansedTable_{FolderName}\")\r\n",
+					"\r\n",
+					"# spark.sql(\"select * from TempTable_LogisticsLocationCleansed\")\r\n",
+					"\r\n",
+					"###snapshot before upsert####\r\n",
+					"original_snaptrg = spark.table(f\"TempTable_{FolderName}Cleansed\").alias(\"orig\")\r\n",
+					"original_snaptrg.show()\r\n",
+					"original_snaptrg.count()\r\n",
+					"\r\n",
+					""
+				],
+				"execution_count": 7
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"**Merge Operation**"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"##list of src row col for merge####\r\n",
+					"columns_to_update = All_Source_Column_Names.split(',') \r\n",
+					"# columns_to_update.append('LND_File_Timestamp')\r\n",
+					"\r\n",
+					"# columns_to_update.append('LND_File_Timestamp')\r\n",
+					"Incol = copy.copy(columns_to_update)\r\n",
+					"Incol.append('LND_File_Timestamp')\r\n",
+					"\r\n",
+					"####Key col value for merge##########\r\n",
+					"Joinkey_col = SourceBusinessKeys.split(',') \r\n",
+					"# merge_condition = \"DF_Cleansed.RECID = DF_Raw.RECID\"\r\n",
+					"\r\n",
+					"######Merge condition ##########################\r\n",
+					"merge_conds = []\r\n",
+					"\r\n",
+					"for Key in Joinkey_col:\r\n",
+					"    cond = f\"TempcleansedTable_{FolderName}.{Key} = TempRawTable_{FolderName}.{Key}\"\r\n",
+					"    # cond = f\"TempcleansedTable_LogisticsLocation.{Key} = TempRawTable_LogisticsLocation.{Key}\"\r\n",
+					"    merge_conds.append(cond)\r\n",
+					"\r\n",
+					"merge_condition = \" AND \".join(merge_conds)\r\n",
+					"\r\n",
+					"insert_cols = \", \".join(Incol)\r\n",
+					"insert_vals = \", \".join([f\"TempRawTable_{FolderName}.{col}\" for col in Incol])\r\n",
+					"# print(insert_vals)\r\n",
+					"\r\n",
+					"\r\n",
+					"set_clauses = []\r\n",
+					"for col in Incol:\r\n",
+					"  # set_clause = \"TempcleansedTable_LogisticsLocation.{0} = TempRawTable_LogisticsLocation.{0}\".format(col)\r\n",
+					"  set_clause = f\"TempcleansedTable_{FolderName}.{col} = TempRawTable_{FolderName}.{col}\".format(col)\r\n",
+					"  set_clauses.append(set_clause)\r\n",
+					"set_stmt = \", \".join(set_clauses)\r\n",
+					"# print(set_stmt)\r\n",
+					"\r\n",
+					"\r\n",
+					"tablecleansed = f\"TempcleansedTable_{FolderName}\"\r\n",
+					"tableraw = f\"TempRawTable_{FolderName}\"\r\n",
+					"\r\n",
+					"\r\n",
+					"#############Merge Operation##################\r\n",
+					"\r\n",
+					"merge_stmt = \"\"\"\r\n",
+					"  MERGE INTO {tablecleansed} USING {tableraw}\r\n",
+					"  ON {merge_cond}\r\n",
+					"  WHEN MATCHED THEN \r\n",
+					"    UPDATE SET \r\n",
+					"      {set_stmt} /*rows updated*/\r\n",
+					"  WHEN NOT MATCHED THEN \r\n",
+					"    INSERT ({insert_cols}) VALUES ({insert_vals}) /* rows inserted */\r\n",
+					"\"\"\".format(merge_cond=merge_condition,\r\n",
+					"set_stmt = set_stmt,\r\n",
+					"insert_cols = insert_cols,\r\n",
+					"insert_vals = insert_vals,\r\n",
+					"tablecleansed= tablecleansed,\r\n",
+					"tableraw= tableraw\r\n",
+					")\r\n",
+					"\r\n",
+					"merged_trg = spark.sql(merge_stmt)\r\n",
+					"\r\n",
+					"\r\n",
+					"# ####Spare testing code#########\r\n",
+					"# spark.table(\"select * from TempFinalTable_LogisticsLocation\").show()\r\n",
+					"# merged_trg.createOrReplaceTempView(f\"TempFinalTable_{FolderName}\")\r\n",
+					"# spark.sql(\"select * from TempFinalTable_LogisticsLocation\").show(\r\n",
+					"# spark.sql(\"select * from TempFinalTable_LogisticsLocation\").show()\r\n",
+					"# display(TempFinalTable_LogisticsLocation)\r\n",
+					"# DfUpdatedCleansedTable = spark.table(DF_Cleansed)\r\n",
+					"# final = DF_Cleansed.union(merged_df)\r\n",
+					"# DF_Cleansed.show()\r\n",
+					"# spark.sql(f\"Select * from TempRawTable_{FolderName}\"). show()\r\n",
+					"\r\n",
+					"\r\n",
+					""
+				],
+				"execution_count": 16
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#####Spare testing code#########\r\n",
+					"# spark.table(\"select * from TempFinalTable_LogisticsLocation\").show()\r\n",
+					"# merged_trg.createOrReplaceTempView(f\"TempFinalTable_{FolderName}\")\r\n",
+					"# spark.sql(f\"select * from TempFinalTable_{FolderName}\").show()\r\n",
+					"# # spark.sql(\"select * from TempFinalTable_LogisticsLocation\").show()\r\n",
+					"# display(TempFinalTable_LogisticsLocation)\r\n",
+					"# DfUpdatedCleansedTable = spark.table(DF_Cleansed)\r\n",
+					"# final = DF_Cleansed.union(merged_df)\r\n",
+					"# DF_Cleansed.show()\r\n",
+					"# spark.sql(f\"Select * from TempRawTable_{FolderName}\"). show()"
+				],
+				"execution_count": 17
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# # writing to clean Folder in Cleanse Layer\r\n",
+					"# CleanRecordsADLSPath = 'abfss://%s@%s.dfs.core.windows.net/%s%s%s/' % (CleanseContainerName, CleanseStorageAccountName, SourceSystemName, CleanRelativePath, FolderName)\r\n",
+					"# DF_Raw.write.format(\"delta\")\\\r\n",
+					"#         .mode(\"overwrite\")\\\r\n",
+					"#         .saveAsTable(f\"sparkdb.cleanse_{FolderName}\", path = CleanRecordsADLSPath)\r\n",
+					"# #        .option(\"mergeSchema\", \"false\")\\\r\n",
+					"# #       .partitionBy(\"2023\", \"08\", \"10\")\\"
+				],
+				"execution_count": 22
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"**Load History Record**"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"\r\n",
+					"# HistoricalRecordsADLSPath = 'abfss://%s@%s.dfs.core.windows.net/%s%s%s/%s/' % (CleanseContainerName, CleanseStorageAccountName, SourceSystemName, HistoryRelativePath, FolderName,LND_File_Name_Pattern)\r\n",
+					"# print(HistoricalRecordsADLSPath)\r\n",
+					"# DF_Rawwithlnd.write.format(\"delta\")\\\r\n",
+					"#         .mode(\"append\")\\\r\n",
+					"#         .saveAsTable(f\"sparkdb.History_{FolderName}\", path = HistoricalRecordsADLSPath)\r\n",
+					"# #         .option(\"mergeSchema\", \"false\")\\\r\n",
+					"# #         # .partitionBy(\"2023\", \"08\", \"22\")\r\n",
+					"\r\n",
+					"LND_File_Name_Pattern = 'LogisticsLocation_data'\r\n",
+					"HistoricalRecordsADLSPath = 'abfss://%s@%s.dfs.core.windows.net/%s%s%s/' % (CleanseContainerName, CleanseStorageAccountName, SourceSystemName, HistoryRelativePath, FolderName)\r\n",
+					"print(HistoricalRecordsADLSPath)\r\n",
+					"\r\n",
+					"#check if the table is present\r\n",
+					"table_name = f\"History_{FolderName}\"\r\n",
+					"db_name = \"sparkdb\"\r\n",
+					"\r\n",
+					"tables = spark.catalog.listTables(db_name)\r\n",
+					"print(tables)\r\n",
+					"\r\n",
+					"if any(table.name == table_name for table in tables):\r\n",
+					"    print(f\"{table_name} table exists\")\r\n",
+					"    DF_Rawwithlnd.write.format(\"delta\") \\\r\n",
+					"            .mode(\"append\") \\\r\n",
+					"            .saveAsTable(f\"sparkdb.History_{FolderName}\", path = HistoricalRecordsADLSPath)\r\n",
+					"else:\r\n",
+					"    print(f\"{table_name} does not exist\")\r\n",
+					"    DF_Rawwithlnd.write.format(\"delta\") \\\r\n",
+					"           .mode(\"overwrite\") \\\r\n",
+					"           .saveAsTable(f\"sparkdb.History_{FolderName}\", path = HistoricalRecordsADLSPath)"
+				],
+				"execution_count": 8
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"\r\n",
+					"HistoricalRecordsADLSPath = 'abfss://%s@%s.dfs.core.windows.net/%s%s%s/%s/' % (CleanseContainerName, CleanseStorageAccountName, SourceSystemName, HistoryRelativePath, FolderName,LND_File_Name_Pattern)\r\n",
+					"print(HistoricalRecordsADLSPath)\r\n",
+					"DF_Rawwithlnd.write.format(\"delta\")\\\r\n",
+					"        .mode(\"append\")\\\r\n",
+					"        .saveAsTable(f\"sparkdb.History_{FolderName}\", path = HistoricalRecordsADLSPath)\r\n",
+					"#         .option(\"mergeSchema\", \"false\")\\\r\n",
+					"#         # .partitionBy(\"2023\", \"08\", \"22\")\r\n",
+					"\r\n",
+					"DF_test = spark.sql(saveAsTable.withcolumn(\"colum\"))"
+				]
+			}
+		]
+	}
+}

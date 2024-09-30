@@ -1,0 +1,41 @@
+{
+	"name": "Pipeline 4",
+	"properties": {
+		"activities": [
+			{
+				"name": "Web1",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/x-www-form-urlencoded"
+					},
+					"url": {
+						"value": "https://idp.nordic.confirmit.com/identity/connect/token",
+						"type": "Expression"
+					},
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"body": {
+						"value": "@concat('client_id=', '67b37746-5c35-4f0e-8e54-c9f6e5ab0abd', '&client_secret=', '4b28c286-cf29-4539-83a6-aac5a99195ed', '&grant_type=api-user', '&scope=pub.surveys')",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2024-04-19T08:50:51Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

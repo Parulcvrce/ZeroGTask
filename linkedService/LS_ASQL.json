@@ -1,0 +1,23 @@
+{
+	"name": "LS_ASQL",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"parameters": {
+			"ASQL_ServerName": {
+				"type": "string"
+			},
+			"ASQLDB_Name": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"connectionString": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=@{linkedService().ASQL_ServerName};Initial Catalog=@{linkedService().ASQLDB_Name}"
+		},
+		"connectVia": {
+			"referenceName": "AutoResolveIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}
