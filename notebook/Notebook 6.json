@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "3b777a49-d7ff-446a-9fa9-346401f30fba"
+				"spark.autotune.trackingId": "b0bd2796-d9fc-4f03-af26-6685d08f3315"
 			}
 		},
 		"metadata": {
@@ -49,6 +49,19 @@
 		},
 		"cells": [
 			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Pax"
+				]
+			},
+			{
 				"cell_type": "code",
 				"metadata": {
 					"jupyter": {
@@ -71,14 +84,14 @@
 					"# display(df)\r\n",
 					"\r\n",
 					"\r\n",
-					"DF= spark.read.format('csv')\\\r\n",
+					"DF_PAX= spark.read.format('csv')\\\r\n",
 					"                        .option('header', 'true')\\\r\n",
 					"                        .option('inferred','true')\\\r\n",
 					"                        .load('wasbs://raw@synapsesazerog.blob.core.windows.net/stage/*')\r\n",
 					"\r\n",
-					"display(DF)\r\n",
+					"display(DF_PAX)\r\n",
 					"\r\n",
-					"DF.createOrReplaceTempView(\"TempView_pax\")\r\n",
+					"DF_PAX.createOrReplaceTempView(\"TempView_pax\")\r\n",
 					"\r\n",
 					"# if Debug:\r\n",
 					"#     display(DF.limit(NoOfRecordsToDisplay)) \r\n",
@@ -88,6 +101,39 @@
 					""
 				],
 				"execution_count": 10
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"DF_Sales= spark.read.format('csv')\\\r\n",
+					"                        .option('header', 'true')\\\r\n",
+					"                        .option('inferred','true')\\\r\n",
+					"                        .load('wasbs://raw@synapsesazerog.blob.core.windows.net/stage/sales/*')\r\n",
+					"\r\n",
+					"\r\n",
+					"display(DF_Sales)\r\n",
+					"\r\n",
+					"DF_Sales.createOrReplaceTempView(\"TempView_sales\")\r\n",
+					"\r\n",
+					"# if Debug:\r\n",
+					"#     display(DF.limit(NoOfRecordsToDisplay)) \r\n",
+					"\r\n",
+					"DF_Sales = spark.sql(\"SELECT * FROM TempView_sales\")\r\n",
+					""
+				],
+				"execution_count": 15
 			}
 		]
 	}
