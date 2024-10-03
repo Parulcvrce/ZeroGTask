@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "90e6e51b-ef80-4d2b-b562-be2994ab17d5"
+				"spark.autotune.trackingId": "b684ed55-7e07-4d09-b11b-7bc414a6fcfe"
 			}
 		},
 		"metadata": {
@@ -98,9 +98,9 @@
 					"\r\n",
 					"DF_PAX = spark.sql(\"SELECT * FROM TempView_pax\")\r\n",
 					"\r\n",
-					"DF_PAX.printSchema()"
+					"# DF_PAX.printSchema()"
 				],
-				"execution_count": 35
+				"execution_count": 2
 			},
 			{
 				"cell_type": "markdown",
