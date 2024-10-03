@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "b0bd2796-d9fc-4f03-af26-6685d08f3315"
+				"spark.autotune.trackingId": "90e6e51b-ef80-4d2b-b562-be2994ab17d5"
 			}
 		},
 		"metadata": {
@@ -89,7 +89,7 @@
 					"                        .option('inferred','true')\\\r\n",
 					"                        .load('wasbs://raw@synapsesazerog.blob.core.windows.net/stage/*')\r\n",
 					"\r\n",
-					"display(DF_PAX)\r\n",
+					"# display(DF_PAX)\r\n",
 					"\r\n",
 					"DF_PAX.createOrReplaceTempView(\"TempView_pax\")\r\n",
 					"\r\n",
@@ -98,9 +98,22 @@
 					"\r\n",
 					"DF_PAX = spark.sql(\"SELECT * FROM TempView_pax\")\r\n",
 					"\r\n",
-					""
+					"DF_PAX.printSchema()"
 				],
-				"execution_count": 10
+				"execution_count": 35
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Sales"
+				]
 			},
 			{
 				"cell_type": "code",
@@ -131,9 +144,220 @@
 					"#     display(DF.limit(NoOfRecordsToDisplay)) \r\n",
 					"\r\n",
 					"DF_Sales = spark.sql(\"SELECT * FROM TempView_sales\")\r\n",
+					"\r\n",
+					"DF_Sales.printSchema()\r\n",
 					""
 				],
-				"execution_count": 15
+				"execution_count": null
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### Loading"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"DF_loading= spark.read.format('json')\\\r\n",
+					"                        .option('header', 'true')\\\r\n",
+					"                        .option('inferred','true')\\\r\n",
+					"                        .load('wasbs://raw@synapsesazerog.blob.core.windows.net/loading/*')\r\n",
+					"\r\n",
+					"\r\n",
+					"display(DF_loading)\r\n",
+					"\r\n",
+					"\r\n",
+					"DF_loading.createOrReplaceTempView(\"TempView_loading\")\r\n",
+					"\r\n",
+					"# if Debug:\r\n",
+					"#     display(DF.limit(NoOfRecordsToDisplay)) \r\n",
+					"\r\n",
+					"DF_loading = spark.sql(\"SELECT * FROM TempView_loading\")\r\n",
+					"\r\n",
+					"# DF_Sales.printSchema()\r\n",
+					""
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from pyspark.sql import SparkSession\r\n",
+					"from pyspark.sql.functions import col, count, sum, avg, to_date, when\r\n",
+					"\r\n",
+					"# Assume spark session is already created\r\n",
+					"\r\n",
+					"# Load data from temp views\r\n",
+					"df_sales = spark.sql(\"SELECT * FROM TempView_sales\")\r\n",
+					"df_loading = spark.sql(\"SELECT * FROM TempView_loading\")\r\n",
+					"df_pax = spark.sql(\"SELECT * FROM TempView_pax\")\r\n",
+					"\r\n",
+					"def process_data(df, is_loading=False):\r\n",
+					"    # Convert relevant columns to appropriate types\r\n",
+					"    df_processed = df.withColumn(\"Flight Date\", to_date(col(\"Flight Date\"))) \\\r\n",
+					"                     .withColumn(\"Quantity\", col(\"Quantity\").cast(\"integer\")) \\\r\n",
+					"                     .withColumn(\"NetSales\", col(\"NetSales\").cast(\"double\")) \\\r\n",
+					"                     .withColumn(\"PassengerCount\", col(\"PassengerCount\").cast(\"integer\"))\r\n",
+					"\r\n",
+					"    # Aggregate data per flight\r\n",
+					"    agg_cols = {\r\n",
+					"        \"Quantity\": \"sum\",\r\n",
+					"        \"NetSales\": \"sum\",\r\n",
+					"        \"PassengerCount\": \"max\",\r\n",
+					"        \"TransactionID\": \"count\"\r\n",
+					"    }\r\n",
+					"    \r\n",
+					"    if is_loading:\r\n",
+					"        agg_cols[\"Quantity\"] = \"sum\"\r\n",
+					"    \r\n",
+					"    df_aggregated = df_processed.groupBy(\"Flight\", \"Flight Date\") \\\r\n",
+					"        .agg(\r\n",
+					"            *[getattr(func(col(c)), \"alias\")(f\"{c}_{'loaded' if is_loading else 'sold'}\")\r\n",
+					"              for c, func in agg_cols.items()]\r\n",
+					"        )\r\n",
+					"\r\n",
+					"    return df_aggregated\r\n",
+					"\r\n",
+					"# Process sales and loading data\r\n",
+					"df_sales_agg = process_data(df_sales)\r\n",
+					"df_loading_agg = process_data(df_loading, is_loading=True)\r\n",
+					"\r\n",
+					"# Combine sales and loading data\r\n",
+					"df_combined = df_sales_agg.join(df_loading_agg, [\"Flight\", \"Flight Date\"], \"outer\")\r\n",
+					"\r\n",
+					"# Add pax data if it exists and has a different schema\r\n",
+					"if df_pax is not None and df_pax.schema != df_sales.schema:\r\n",
+					"    df_pax_processed = df_pax.withColumn(\"Flight Date\", to_date(col(\"Flight Date\")))\r\n",
+					"    df_combined = df_combined.join(df_pax_processed, [\"Flight\", \"Flight Date\"], \"left\")\r\n",
+					"\r\n",
+					"# Data for Data Scientists\r\n",
+					"def prepare_data_for_scientists(df):\r\n",
+					"    return df.select(\"Flight\", \"Flight Date\", \"PassengerCount_sold\", \"Quantity_sold\")\r\n",
+					"\r\n",
+					"# Data for Data Analysts\r\n",
+					"def prepare_data_for_analysts(df):\r\n",
+					"    return df\r\n",
+					"\r\n",
+					"# Execute the pipeline\r\n",
+					"df_for_scientists = prepare_data_for_scientists(df_combined)\r\n",
+					"df_for_analysts = prepare_data_for_analysts(df_combined)\r\n",
+					"\r\n",
+					"# Save the results\r\n",
+					"df_for_scientists.write.mode(\"overwrite\").parquet(\"abfss://processed@synapsesazerog.dfs.core.windows.net/data_for_scientists/\")\r\n",
+					"df_for_analysts.write.mode(\"overwrite\").parquet(\"abfss://processed@synapsesazerog.dfs.core.windows.net/data_for_analysts/\")\r\n",
+					"\r\n",
+					"print(\"Data processing complete. Results saved to Azure Data Lake Storage Gen2.\")"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from pyspark.sql import SparkSession\r\n",
+					"from pyspark.sql.functions import col, count, sum, avg, to_date, when, max as max_agg\r\n",
+					"\r\n",
+					"# Assume spark session is already created\r\n",
+					"\r\n",
+					"# Load data from temp views\r\n",
+					"df_sales = spark.sql(\"SELECT * FROM TempView_sales\")\r\n",
+					"df_loading = spark.sql(\"SELECT * FROM TempView_loading\")\r\n",
+					"df_pax = spark.sql(\"SELECT * FROM TempView_pax\")\r\n",
+					"\r\n",
+					"\r\n",
+					"display(df_sales)\r\n",
+					"\r\n",
+					"# def process_data(df, is_loading=False):\r\n",
+					"#     # Convert relevant columns to appropriate types\r\n",
+					"#     df_processed = df.withColumn(\"Flight Date\", to_date(col(\"Flight Date\"))) \\\r\n",
+					"#                      .withColumn(\"Quantity\", col(\"Quantity\").cast(\"integer\")) \\\r\n",
+					"#                      .withColumn(\"NetSales\", col(\"NetSales\").cast(\"double\")) \\\r\n",
+					"#                      .withColumn(\"PassengerCount\", col(\"PassengerCount\").cast(\"integer\"))\r\n",
+					"\r\n",
+					"#     # Aggregate data per flight\r\n",
+					"#     agg_exprs = [\r\n",
+					"#         sum(col(\"Quantity\")).alias(f\"Quantity_{'loaded' if is_loading else 'sold'}\"),\r\n",
+					"#         sum(col(\"NetSales\")).alias(f\"NetSales_{'loaded' if is_loading else 'sold'}\"),\r\n",
+					"#         max_agg(col(\"PassengerCount\")).alias(f\"PassengerCount_{'loaded' if is_loading else 'sold'}\"),\r\n",
+					"#         count(col(\"TransactionID\")).alias(f\"TransactionID_{'loaded' if is_loading else 'sold'}\")\r\n",
+					"#     ]\r\n",
+					"    \r\n",
+					"#     df_aggregated = df_processed.groupBy(\"Flight\", \"Flight Date\").agg(*agg_exprs)\r\n",
+					"\r\n",
+					"#     return df_aggregated\r\n",
+					"\r\n",
+					"# # Process sales and loading data\r\n",
+					"# df_sales_agg = process_data(df_sales)\r\n",
+					"# df_loading_agg = process_data(df_loading, is_loading=True)\r\n",
+					"\r\n",
+					"# # Combine sales and loading data\r\n",
+					"# df_combined = df_sales_agg.join(df_loading_agg, [\"Flight\", \"Flight Date\"], \"outer\")\r\n",
+					"\r\n",
+					"# # Add pax data if it exists\r\n",
+					"# if df_pax is not None:\r\n",
+					"#     df_pax_processed = df_pax.withColumn(\"Flight Date\", to_date(col(\"Flight Date\")))\r\n",
+					"#     df_combined = df_combined.join(df_pax_processed, [\"Flight\", \"Flight Date\"], \"left\")\r\n",
+					"\r\n",
+					"# # Data for Data Scientists\r\n",
+					"# def prepare_data_for_scientists(df):\r\n",
+					"#     return df.select(\"Flight\", \"Flight Date\", \"PassengerCount_sold\", \"Quantity_sold\")\r\n",
+					"\r\n",
+					"# # Data for Data Analysts\r\n",
+					"# def prepare_data_for_analysts(df):\r\n",
+					"#     return df\r\n",
+					"\r\n",
+					"# # Execute the pipeline\r\n",
+					"# df_for_scientists = prepare_data_for_scientists(df_combined)\r\n",
+					"# df_for_analysts = prepare_data_for_analysts(df_combined)\r\n",
+					"\r\n",
+					"# # Save the results\r\n",
+					"# df_for_scientists.write.mode(\"overwrite\").parquet(\"abfss://processed@synapsesazerog.dfs.core.windows.net/data_for_scientists/\")\r\n",
+					"# df_for_analysts.write.mode(\"overwrite\").parquet(\"abfss://processed@synapsesazerog.dfs.core.windows.net/data_for_analysts/\")\r\n",
+					"\r\n",
+					"print(\"Data processing complete. Results saved to Azure Data Lake Storage Gen2.\")"
+				],
+				"execution_count": 32
 			}
 		]
 	}
