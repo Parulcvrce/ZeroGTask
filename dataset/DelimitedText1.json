@@ -10,7 +10,7 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobStorageLocation",
-				"fileName": "pax 03 2019.csv",
+				"fileName": "*",
 				"folderPath": "pax",
 				"container": "raw"
 			},
