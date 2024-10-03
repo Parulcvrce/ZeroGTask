@@ -1,0 +1,45 @@
+{
+	"name": "DelimitedText1",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureBlobStorage3",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "pax 03 2019.csv",
+				"folderPath": "pax",
+				"container": "raw"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "Date",
+				"type": "String"
+			},
+			{
+				"name": "Flight Number",
+				"type": "String"
+			},
+			{
+				"name": "Boarded Y",
+				"type": "String"
+			},
+			{
+				"name": "Capacity Physical Y",
+				"type": "String"
+			},
+			{
+				"name": "Capacity Saleable Y",
+				"type": "String"
+			}
+		]
+	}
+}
