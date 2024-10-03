@@ -1,0 +1,188 @@
+{
+	"name": "Notebook 5",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "Sparkpool",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "8d2d200e-77da-4bd5-a8c8-e079fdcd7069"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/35c7c256-febc-4c53-82a5-71e8573a3c24/resourceGroups/rg-pmishra-training-001/providers/Microsoft.Synapse/workspaces/trainparmish/bigDataPools/Sparkpool",
+				"name": "Sparkpool",
+				"type": "Spark",
+				"endpoint": "https://trainparmish.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/Sparkpool",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "3.3",
+				"nodeCount": 10,
+				"cores": 4,
+				"memory": 28,
+				"automaticScaleJobs": false
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# PAX DATA"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"microsoft": {
+						"language": "python"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%pyspark\n",
+					"blob_account_name = \"synapsesazerog\"\n",
+					"blob_container_name = \"raw\"\n",
+					"from pyspark.sql import SparkSession\n",
+					"\n",
+					"sc = SparkSession.builder.getOrCreate()\n",
+					"token_library = sc._jvm.com.microsoft.azure.synapse.tokenlibrary.TokenLibrary\n",
+					"blob_sas_token = token_library.getConnectionString(\"AzureBlobStorage2\")\n",
+					"\n",
+					"# spark.conf.set(\n",
+					"#     'fs.azure.sas.%s.%s.blob.core.windows.net' % (blob_container_name, blob_account_name),\n",
+					"#     blob_sas_token)\n",
+					"# DF = spark.read.load('wasbs://raw@synapsesazerog.blob.core.windows.net/stage/*', format='csv'\n",
+					"# ## If header exists uncomment line below\n",
+					"# , header=True\n",
+					"# )\n",
+					"# display(df.limit(10))\n",
+					"df= spark.read.format('csv')\\\n",
+					"                        .option('header', 'true')\\\n",
+					"                        .option('inferred','true')\\\n",
+					"                        .load('wasbs://raw@synapsesazerog.blob.core.windows.net/stage/*')\n",
+					"\n",
+					"DF.createOrReplaceTempView(\"TempView_pax\")\n",
+					"\n",
+					"# if Debug:\n",
+					"#     display(DF.limit(NoOfRecordsToDisplay)) \n",
+					"\n",
+					"DF_PAX = spark.sql(\"SELECT * FROM TempView_pax\")\n",
+					"display(DF_PAX)\n",
+					"\n",
+					""
+				],
+				"execution_count": 25
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Sales Data"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"from pyspark.sql import SparkSession\r\n",
+					"\r\n",
+					"# Initialize Spark Session\r\n",
+					"spark = SparkSession.builder.getOrCreate()\r\n",
+					"\r\n",
+					"# Azure Blob Storage account details\r\n",
+					"blob_account_name = \"synapsesazerog\"\r\n",
+					"blob_container_name = \"raw\"\r\n",
+					"\r\n",
+					"DF = spark.read.format('csv')\\\r\n",
+					"                        .option('header', 'true')\\\r\n",
+					"                        .option('inferred','true')\\\r\n",
+					"                        .load('wasbs://raw@synapsesazerog.blob.core.windows.net/stage/*')\r\n",
+					"\r\n",
+					"# Show the first 10 rows\r\n",
+					"display(sales_df)\r\n",
+					"\r\n",
+					"\r\n",
+					"# # Perform some basic aggregations\r\n",
+					"# print(\"\\nSales Summary:\")\r\n",
+					"# sales_summary = sales_df.groupBy(\"FlightNumber\") \\\r\n",
+					"#     .agg(\r\n",
+					"#         countDistinct(\"Date\").alias(\"NumberOfFlights\"),\r\n",
+					"#         sum(\"SoldItemsCount\").alias(\"TotalItemsSold\"),\r\n",
+					"#         avg(\"SoldItemsCount\").alias(\"AvgItemsSoldPerFlight\")\r\n",
+					"#     )\r\n",
+					"# sales_summary.show(10)\r\n",
+					"\r\n",
+					"# # Write the sales data to a Delta table\r\n",
+					"# sales_df.write.format(\"delta\").mode(\"overwrite\").saveAsTable(\"SalesData\")\r\n",
+					"\r\n",
+					"# # Create a view for easier SQL querying\r\n",
+					"# spark.sql(\"\"\"\r\n",
+					"# CREATE OR REPLACE VIEW SalesView AS\r\n",
+					"# SELECT * FROM SalesData\r\n",
+					"# \"\"\")\r\n",
+					"\r\n",
+					"# print(\"Sales data processing completed successfully!\")\r\n",
+					"\r\n",
+					"# # Example of querying the view\r\n",
+					"# print(\"\\nTop 5 flights by total items sold:\")\r\n",
+					"# spark.sql(\"\"\"\r\n",
+					"# SELECT FlightNumber, SUM(SoldItemsCount) as TotalItemsSold\r\n",
+					"# FROM SalesView\r\n",
+					"# GROUP BY FlightNumber\r\n",
+					"# ORDER BY TotalItemsSold DESC\r\n",
+					"# LIMIT 5\r\n",
+					"# \"\"\").show()"
+				],
+				"execution_count": 20
+			}
+		]
+	}
+}
