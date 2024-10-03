@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "6987249d-7e03-46e3-863e-ed0ef0657031"
+				"spark.autotune.trackingId": "3b777a49-d7ff-446a-9fa9-346401f30fba"
 			}
 		},
 		"metadata": {
@@ -71,15 +71,23 @@
 					"# display(df)\r\n",
 					"\r\n",
 					"\r\n",
-					"df= spark.read.format('csv')\\\r\n",
+					"DF= spark.read.format('csv')\\\r\n",
 					"                        .option('header', 'true')\\\r\n",
 					"                        .option('inferred','true')\\\r\n",
 					"                        .load('wasbs://raw@synapsesazerog.blob.core.windows.net/stage/*')\r\n",
 					"\r\n",
-					"display(df)\r\n",
+					"display(DF)\r\n",
+					"\r\n",
+					"DF.createOrReplaceTempView(\"TempView_pax\")\r\n",
+					"\r\n",
+					"# if Debug:\r\n",
+					"#     display(DF.limit(NoOfRecordsToDisplay)) \r\n",
+					"\r\n",
+					"DF_PAX = spark.sql(\"SELECT * FROM TempView_pax\")\r\n",
+					"\r\n",
 					""
 				],
-				"execution_count": 9
+				"execution_count": 10
 			}
 		]
 	}
