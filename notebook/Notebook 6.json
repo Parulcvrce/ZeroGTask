@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "6c73937c-b8f0-423a-85de-ed7e2dc964b8"
+				"spark.autotune.trackingId": "20336ff8-23e1-47e8-896b-9a6ff6166641"
 			}
 		},
 		"metadata": {
@@ -85,14 +85,18 @@
 					"blob_account_name = \"synapsesazerog\"\r\n",
 					"blob_container_name = \"raw\"\r\n",
 					"\r\n",
-					"# Set the SAS token for accessing the Blob Storage\r\n",
-					"sas_token = \"sv=2022-11-02&ss=bfqt&srt=sco&sp=rwdlacupyx&se=2024-10-07T02:05:04Z&st=2024-10-03T18:05:04Z&spr=https,http&sig=yTDeBjWXfWz%2BRNUUnIuWB%2BrliCkrpboOQZ30UOatUEc%3D\"  # Replace with the actual SAS token\r\n",
+					"%%pyspark\r\n",
+					"blob_account_name = \"synapsesazerog\"\r\n",
+					"blob_container_name = \"raw\"\r\n",
+					"from pyspark.sql import SparkSession\r\n",
 					"\r\n",
-					"# Configure Spark with the SAS token\r\n",
+					"sc = SparkSession.builder.getOrCreate()\r\n",
+					"token_library = sc._jvm.com.microsoft.azure.synapse.tokenlibrary.TokenLibrary\r\n",
+					"blob_sas_token = token_library.getConnectionString(\"AzureBlobStorage2\")\r\n",
+					"\r\n",
 					"spark.conf.set(\r\n",
-					"    f'fs.azure.sas.{blob_container_name}.{blob_account_name}.blob.core.windows.net',\r\n",
-					"    sas_token\r\n",
-					")\r\n",
+					"    'fs.azure.sas.%s.%s.blob.core.windows.net' % (blob_container_name, blob_account_name),\r\n",
+					"    blob_sas_token)\r\n",
 					"\r\n",
 					"\r\n",
 					"# Load CSV data from Blob Storage\r\n",
@@ -107,9 +111,54 @@
 					"# Execute SQL query on the temp view\r\n",
 					"DF_PAX = spark.sql(\"SELECT * FROM TempView_pax\")\r\n",
 					"\r\n",
-					"# DF_PAX.printSchema()"
+					"# DF_PAX.printSchema()\r\n",
+					"display()"
 				],
-				"execution_count": 10
+				"execution_count": 17
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "python"
+					}
+				},
+				"source": [
+					"%%pyspark\r\n",
+					"blob_account_name = \"synapsesazerog\"\r\n",
+					"blob_container_name = \"raw\"\r\n",
+					"from pyspark.sql import SparkSession\r\n",
+					"\r\n",
+					"sc = SparkSession.builder.getOrCreate()\r\n",
+					"token_library = sc._jvm.com.microsoft.azure.synapse.tokenlibrary.TokenLibrary\r\n",
+					"blob_sas_token = token_library.getConnectionString(\"AzureBlobStorage2\")\r\n",
+					"\r\n",
+					"spark.conf.set(\r\n",
+					"    'fs.azure.sas.%s.%s.blob.core.windows.net' % (blob_container_name, blob_account_name),\r\n",
+					"    blob_sas_token)\r\n",
+					"\r\n",
+					"# Load CSV data from Blob Storage\r\n",
+					"DF_PAX = spark.read.format('csv')\\\r\n",
+					"                   .option('header', 'true')\\\r\n",
+					"                   .option('inferSchema', 'true')\\\r\n",
+					"                   .load('wasbs://raw@synapsesazerog.blob.core.windows.net/stage/*')\r\n",
+					"\r\n",
+					"# # Create a temporary view for SQL queries\r\n",
+					"# DF_PAX.createOrReplaceTempView(\"TempView_pax\")\r\n",
+					"\r\n",
+					"# # Execute SQL query on the temp view\r\n",
+					"# DF_PAX = spark.sql(\"SELECT * FROM TempView_pax\")"
+				],
+				"execution_count": 21
 			},
 			{
 				"cell_type": "markdown",
