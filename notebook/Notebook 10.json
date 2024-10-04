@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "e9402b36-c727-4053-8bb1-a8b822e3ad7b"
+				"spark.autotune.trackingId": "5e87a264-42d0-4766-b998-37fc92ecdad6"
 			}
 		},
 		"metadata": {
@@ -265,6 +265,19 @@
 				"execution_count": null
 			},
 			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### Transform Data"
+				]
+			},
+			{
 				"cell_type": "code",
 				"metadata": {
 					"jupyter": {
@@ -278,7 +291,7 @@
 					}
 				},
 				"source": [
-					"# Load data from temporary views (replace with your actual data sources)\r\n",
+					"\r\n",
 					"df_loading = spark.sql(\"SELECT * FROM TempView_loading\")\r\n",
 					"df_sales = spark.sql(\"SELECT * FROM TempView_sales\")\r\n",
 					"df_pax = spark.sql(\"SELECT * FROM TempView_pax\")\r\n",
@@ -344,7 +357,62 @@
 					")\r\n",
 					"\r\n",
 					"\r\n",
+					"# Data aggregation for data analysts\r\n",
+					"df_analysts = df_cleaned.groupBy(\"Flight\").agg(\r\n",
+					"    sum(\"InvoiceQuantity\").alias(\"TotalItemsSold\"), \r\n",
+					"    sum(\"BoardedPassengers\").alias(\"TotalPassengers\"),\r\n",
+					"    avg(\"EstimatedRevenue\").alias(\"AvgRevenue\") \r\n",
+					")\r\n",
+					"\r\n",
+					"# Data aggregation for data scientists\r\n",
+					"df_scientists = df_cleaned.select(\r\n",
+					"    \"Flight\", \r\n",
+					"    \"BoardedPassengers\", \r\n",
+					"    \"InvoiceQuantity\", \r\n",
+					"    \"LoadFactor\",\r\n",
+					"    \"EstimatedRevenue\",\r\n",
+					"    \"AvgRevenuePerPassenger\"\r\n",
+					")\r\n",
+					"display(df_analysts)\r\n",
+					"\r\n",
+					"display(df_scientists)\r\n",
+					"\r\n",
 					""
+				],
+				"execution_count": 2
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### WRITE THE DATA IN PROCESSED"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Save data to Parquet files in the specified paths\r\n",
+					"\r\n",
+					"df_scientists.write.mode(\"overwrite\").parquet(\"abfss://processed@synapsesazerog.dfs.core.windows.net/data_for_scientists/\")\r\n",
+					"\r\n",
+					"df_analysts.write.mode(\"overwrite\").parquet(\"abfss://processed@synapsesazerog.dfs.core.windows.net/data_for_analysts/\")"
 				],
 				"execution_count": null
 			}
