@@ -1,0 +1,39 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"value": "trainparmish"
+		},
+		"AzureBlobStorage1_connectionString": {
+			"value": ""
+		},
+		"AzureBlobStorage2_connectionString": {
+			"value": ""
+		},
+		"AzureBlobStorage3_connectionString": {
+			"value": ""
+		},
+		"AzureDataLakeStorage2_accountKey": {
+			"value": ""
+		},
+		"LS_ASQL_connectionString": {
+			"value": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=@{linkedService().ASQL_ServerName};Initial Catalog=@{linkedService().ASQLDB_Name}"
+		},
+		"trainparmish-WorkspaceDefaultSqlServer_connectionString": {
+			"value": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=tcp:trainparmish.sql.azuresynapse.net,1433;Initial Catalog=@{linkedService().DBName}"
+		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"value": "https://rawtrg.dfs.core.windows.net/"
+		},
+		"AzureDataLakeStorage2_properties_typeProperties_url": {
+			"value": "https://synapsesazerog.dfs.core.windows.net/"
+		},
+		"raw_properties_typeProperties_url": {
+			"value": "https://rawtrg.dfs.core.windows.net/"
+		},
+		"trainparmish-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"value": "https://synmishtrain.dfs.core.windows.net"
+		}
+	}
+}
