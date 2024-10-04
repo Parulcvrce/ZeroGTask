@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "364f8acb-79cb-40a1-9c1b-8270cc3a0f3a"
+				"spark.autotune.trackingId": "bc85bc99-ab63-4550-946e-612434ffb878"
 			}
 		},
 		"metadata": {
@@ -185,6 +185,44 @@
 					"spark = SparkSession.builder.appName(\"ZeroG Airline Data Pipeline\").getOrCreate()\r\n",
 					"\r\n",
 					""
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### Global Variable"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#Pipeline Trigger\r\n",
+					"if LoggingEnabled=='True':\r\n",
+					"   PipelineTriggerDateTime = datetime.strptime(PipelineTriggerTime,\"%Y-%m-%d %H:%M:%S\")\r\n",
+					"   PipelineTriggerYear = PipelineTriggerDateTime.strftime(\"%Y\")\r\n",
+					"   PipelineTriggerMonth = PipelineTriggerDateTime.strftime(\"%m\")\r\n",
+					"   PipelineTriggerDay = PipelineTriggerDateTime.strftime(\"%d\")\r\n",
+					"   PipelineTriggerFDateTime = PipelineTriggerDateTime.strftime(\"%m-%d-%Y %H:%M:%S\")\r\n",
+					"   PipelineTriggerFDateTimeFile = PipelineTriggerDateTime.strftime(\"TS%m-%d-%Y_%H%M%S\")"
 				],
 				"execution_count": null
 			},
