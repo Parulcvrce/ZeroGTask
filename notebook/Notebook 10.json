@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "bc85bc99-ab63-4550-946e-612434ffb878"
+				"spark.autotune.trackingId": "6e9489c4-01c6-485f-9992-3266e28f6c0c"
 			}
 		},
 		"metadata": {
@@ -185,6 +185,50 @@
 					"spark = SparkSession.builder.appName(\"ZeroG Airline Data Pipeline\").getOrCreate()\r\n",
 					"\r\n",
 					""
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Parameters"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#Global Parameters\r\n",
+					"now = datetime.now()\r\n",
+					"PipelineRunID = \"NA\"\r\n",
+					"PipelineName = \"NA\"\r\n",
+					"PipelineTriggerTime = now.strftime(\"%Y-%m-%d %H:%M:%S\")\r\n",
+					"TriggerID = \"\"\r\n",
+					"TriggerName = \"\"\r\n",
+					"TriggerType = \"\"\r\n",
+					"\r\n",
+					"#Log Parameters\r\n",
+					"LoggingEnabled = 'True'\r\n",
+					"LogStorageAccountName = \"\"\r\n",
+					"LogContainerName = \"logs\"\r\n",
+					"LogRelativePath_Curated = \"\""
 				],
 				"execution_count": null
 			},
