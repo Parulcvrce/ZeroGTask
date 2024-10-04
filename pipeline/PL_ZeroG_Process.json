@@ -1,9 +1,9 @@
 {
-	"name": "Pipeline 6",
+	"name": "PL_ZeroG_Process",
 	"properties": {
 		"activities": [
 			{
-				"name": "Notebook1",
+				"name": "Process Data",
 				"type": "SynapseNotebook",
 				"dependsOn": [],
 				"policy": {
