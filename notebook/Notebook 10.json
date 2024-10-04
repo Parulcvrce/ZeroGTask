@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "a56f0183-e986-4513-b301-a663a21c694f"
+				"spark.autotune.trackingId": "364f8acb-79cb-40a1-9c1b-8270cc3a0f3a"
 			}
 		},
 		"metadata": {
@@ -49,6 +49,113 @@
 		},
 		"cells": [
 			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Initialise"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"Session Configuration\r\n",
+					"Note:\r\n",
+					"\r\n",
+					"driverMemory and executorMemory Recommended values: \"28g\", \"56g\", \"112g\", \"224g\", \"400g\", \"472g\"\r\n",
+					"\r\n",
+					"driverCores and executorCores Recommended values: 4, 8, 16, 32, 64, 80"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#%%configure -f\r\n",
+					"#{\r\n",
+					"#    \"driverMemory\": \r\n",
+					"#        {\r\n",
+					"#            \"activityParameterName\": \"SparkPoolMemory\", \r\n",
+					"#            \"defaultValue\": \"28g\"\r\n",
+					"#        },\r\n",
+					"#    \"driverCores\": \r\n",
+					"#        {\r\n",
+					"#            \"activityParameterName\": \"SparkPoolCores\", \r\n",
+					"#            \"defaultValue\": 2\r\n",
+					"#        },\r\n",
+					"#    \"executorMemory\": \r\n",
+					"#        {\r\n",
+					"#            \"activityParameterName\": \"SparkPoolMemory\", \r\n",
+					"#            \"defaultValue\": \"28g\"\r\n",
+					"#        },\r\n",
+					"#    \"executorCores\":\r\n",
+					"#        {\r\n",
+					"#            \"activityParameterName\": \"SparkPoolCores\", \r\n",
+					"#            \"defaultValue\": 2\r\n",
+					"#        },\r\n",
+					"#    \"numExecutors\":\r\n",
+					"#        {\r\n",
+					"#            \"activityParameterName\": \"SparkPoolNumberOfExecutors\", \r\n",
+					"#            \"defaultValue\": 9\r\n",
+					"#        },\r\n",
+					"#    \"conf\": \r\n",
+					"#        {\r\n",
+					"#            \"spark.dynamicAllocation.enabled\": \r\n",
+					"#                {\r\n",
+					"#                    \"activityParameterName\": \"SparkPoolDynamicAllocation\", \r\n",
+					"#                    \"defaultValue\": \"false\"\r\n",
+					"#                },\r\n",
+					"#            \"spark.dynamicAllocation.maxExecutors\":\r\n",
+					"#                {\r\n",
+					"#                    \"activityParameterName\": \"SparkPoolNumberOfExecutors\",\r\n",
+					"#                    \"defaultValue\": 9\r\n",
+					"#                },\r\n",
+					"#            \"spark.dynamicAllocation.minExecutors\":\r\n",
+					"#                {\r\n",
+					"#                    \"activityParameterName\": \"SparkPoolMinExecutors\",\r\n",
+					"#                    \"defaultValue\": 2\r\n",
+					"#                },\r\n",
+					"#        }\r\n",
+					"#}"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Session Variables"
+				]
+			},
+			{
 				"cell_type": "code",
 				"metadata": {
 					"jupyter": {
@@ -65,25 +172,19 @@
 					"from pyspark.sql import SparkSession\r\n",
 					"from pyspark.sql.functions import to_date, to_timestamp, col, lit, sum, avg, count, concat, \r\n",
 					"from pyspark.sql.functions import when, col, lit, split\r\n",
+					"\r\n",
+					"#Debug\r\n",
+					"Debug = True\r\n",
+					"NoOfRecordsToDisplay = 1000\r\n",
+					"\r\n",
+					"#Set Spark Config\r\n",
+					"spark.conf.set(\"spark.sql.sources.partitionOverwriteMode\",\"dynamic\")\r\n",
+					"spark.conf.set(\"spark.sql.autoBroadcastJoinThreshold\",20971520)\r\n",
+					"spark.conf.set(\"spark.sql.adaptive.enabled\",\"true\")\r\n",
+					"spark.conf.set(\"spark.sql.adaptive.skewJoin.enabled\",\"true\")\r\n",
+					"spark = SparkSession.builder.appName(\"ZeroG Airline Data Pipeline\").getOrCreate()\r\n",
+					"\r\n",
 					""
-				],
-				"execution_count": null
-			},
-			{
-				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
-				"source": [
-					"spark = SparkSession.builder.appName(\"ZeroG Airline Data Pipeline\").getOrCreate()"
 				],
 				"execution_count": null
 			},
