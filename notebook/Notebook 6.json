@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "20336ff8-23e1-47e8-896b-9a6ff6166641"
+				"spark.autotune.trackingId": "eef09f52-f8c3-4eb8-9699-83d3538c4a1d"
 			}
 		},
 		"metadata": {
@@ -81,9 +81,10 @@
 					"# Initialize Spark Session\r\n",
 					"spark = SparkSession.builder.getOrCreate()\r\n",
 					"\r\n",
-					"# Azure Blob Storage details\r\n",
-					"blob_account_name = \"synapsesazerog\"\r\n",
-					"blob_container_name = \"raw\"\r\n",
+					"# # Azure Blob Storage details\r\n",
+					"# blob_account_name = \"synapsesazerog\"\r\n",
+					"\r\n",
+					"# blob_container_name = \"raw\"\r\n",
 					"\r\n",
 					"%%pyspark\r\n",
 					"blob_account_name = \"synapsesazerog\"\r\n",
@@ -112,9 +113,9 @@
 					"DF_PAX = spark.sql(\"SELECT * FROM TempView_pax\")\r\n",
 					"\r\n",
 					"# DF_PAX.printSchema()\r\n",
-					"display()"
+					"display(DF_PAX)"
 				],
-				"execution_count": 17
+				"execution_count": 5
 			},
 			{
 				"cell_type": "code",

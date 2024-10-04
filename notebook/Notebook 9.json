@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "a2eafc05-d9ed-430f-b93c-675ec9fcd89a"
+				"spark.autotune.trackingId": "0289b649-4a8a-453c-b023-4ac5e463f25a"
 			}
 		},
 		"metadata": {
@@ -51,6 +51,57 @@
 			{
 				"cell_type": "code",
 				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from pyspark.sql import SparkSession\r\n",
+					"from pyspark.sql.functions import to_date, to_timestamp, col, lit, sum, avg, count, concat, when\r\n",
+					"from pyspark.sql.functions import when, col, lit, split"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Read PAX Data"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"This is to read the Data from Soure Storage Account.\r\n",
+					"It imports the SparkSession\r\n",
+					"Sets the configuration for accessing data in Azure Blob Storage using spark.conf.set. The configuration specifies the format for connecting to a specific container within your storage account using the SAS token.\r\n",
+					"Reads the data file  from the \"stage folder\" subdirectory within the \"raw\" container using spark.read.load. The format is specified as 'text' indicating a text file.\r\n",
+					"Assigns the loaded data to a DataFrame named DF_PAX\r\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
 					"microsoft": {
 						"language": "python"
 					},
@@ -81,7 +132,20 @@
 					"# DF_PAX.printSchema()\n",
 					"display(DF_PAX)"
 				],
-				"execution_count": 2
+				"execution_count": 82
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"This code snippet in PySpark reads data from multiple CSV files located in Azure Blob Storage PAX folder"
+				]
 			},
 			{
 				"cell_type": "code",
@@ -116,7 +180,33 @@
 					"# DF_PAX.printSchema()\r\n",
 					""
 				],
-				"execution_count": 28
+				"execution_count": 83
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## READ SALES DATA"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"This code snippet in PySpark reads data from multiple CSV files located in Azure Blob Storage Sales folder"
+				]
 			},
 			{
 				"cell_type": "code",
@@ -147,11 +237,35 @@
 					"#     display(DF.limit(NoOfRecordsToDisplay)) \r\n",
 					"\r\n",
 					"DF_Sales = spark.sql(\"SELECT * FROM TempView_sales\")\r\n",
-					"\r\n",
-					"# DF_Sales.printSchema()\r\n",
 					""
 				],
-				"execution_count": 3
+				"execution_count": 84
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### READ LOADING DATA"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"This code snippet in PySpark reads data from multiple CSV files located in Azure Blob Storage lOADING folder"
+				]
 			},
 			{
 				"cell_type": "code",
@@ -189,12 +303,8 @@
 				"execution_count": 5
 			},
 			{
-				"cell_type": "code",
+				"cell_type": "markdown",
 				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
 					"nteract": {
 						"transient": {
 							"deleting": false
@@ -202,84 +312,8 @@
 					}
 				},
 				"source": [
-					"from pyspark.sql import SparkSession\r\n",
-					"from pyspark.sql.functions import col, count, sum, max, avg, to_date, when\r\n",
-					"\r\n",
-					"# Assume spark session is already created\r\n",
-					"\r\n",
-					"# Load data from temp views\r\n",
-					"df_sales = spark.sql(\"SELECT * FROM TempView_sales\")\r\n",
-					"df_loading = spark.sql(\"SELECT * FROM TempView_loading\")\r\n",
-					"df_pax = spark.sql(\"SELECT * FROM TempView_pax\")\r\n",
-					"\r\n",
-					"def process_data(df, is_sales=True):\r\n",
-					"    # Convert relevant columns to appropriate types\r\n",
-					"    df_processed = df.withColumn(\"Date\", to_date(col(\"Date\")))\r\n",
-					"    \r\n",
-					"    if is_sales:\r\n",
-					"        df_processed = df_processed.withColumn(\"Boarded Y\", col(\"Boarded Y\").cast(\"integer\")) \\\r\n",
-					"                                   .withColumn(\"Capacity Physical Y\", col(\"Capacity Physical Y\").cast(\"integer\")) \\\r\n",
-					"                                   .withColumn(\"Capacity Saleable Y\", col(\"Capacity Saleable Y\").cast(\"integer\"))\r\n",
-					"    else:\r\n",
-					"        # Add similar transformations for loading data if needed\r\n",
-					"        pass\r\n",
-					"\r\n",
-					"    # Aggregate data per flight\r\n",
-					"    agg_cols = {\r\n",
-					"        \"Boarded Y\": sum,\r\n",
-					"        \"Capacity Physical Y\": max,\r\n",
-					"        \"Capacity Saleable Y\": max\r\n",
-					"    }\r\n",
-					"    \r\n",
-					"    agg_exprs = [agg_cols[c](col(c)).alias(f\"{c}_{'sales' if is_sales else 'loaded'}\") for c in agg_cols]\r\n",
-					"    \r\n",
-					"    df_aggregated = df_processed.groupBy(\"Date\", \"Flight Number\").agg(*agg_exprs)\r\n",
-					"\r\n",
-					"    return df_aggregated\r\n",
-					"\r\n",
-					"# Process sales and loading data\r\n",
-					"df_sales_agg = process_data(df_sales, is_sales=True)\r\n",
-					"df_loading_agg = process_data(df_loading, is_sales=False)\r\n",
-					"\r\n",
-					"# Combine sales and loading data\r\n",
-					"df_combined = df_sales_agg.join(df_loading_agg, [\"Date\", \"Flight Number\"], \"outer\")\r\n",
-					"\r\n",
-					"# Add pax data if it exists and has a different schema\r\n",
-					"if df_pax is not None and df_pax.schema != df_sales.schema:\r\n",
-					"    df_pax_processed = df_pax.withColumn(\"Date\", to_date(col(\"Date\")))\r\n",
-					"    df_combined = df_combined.join(df_pax_processed, [\"Date\", \"Flight Number\"], \"left\")\r\n",
-					"\r\n",
-					"# Data for Data Scientists\r\n",
-					"def prepare_data_for_scientists(df):\r\n",
-					"    return df.select(\"Date\", \"Flight Number\", \"Boarded Y_sales\", \"Capacity Saleable Y_sales\")\r\n",
-					"\r\n",
-					"# Data for Data Analysts\r\n",
-					"def prepare_data_for_analysts(df):\r\n",
-					"    return df\r\n",
-					"\r\n",
-					"# Execute the pipeline\r\n",
-					"df_for_scientists = prepare_data_for_scientists(df_combined)\r\n",
-					"df_for_analysts = prepare_data_for_analysts(df_combined)\r\n",
-					"\r\n",
-					"# Save the results\r\n",
-					"df_for_scientists.write.mode(\"overwrite\").parquet(\"abfss://processed@synapsesazerog.dfs.core.windows.net/data_for_scientists/\")\r\n",
-					"df_for_analysts.write.mode(\"overwrite\").parquet(\"abfss://processed@synapsesazerog.dfs.core.windows.net/data_for_analysts/\")\r\n",
-					"\r\n",
-					"print(\"Data processing complete. Results saved to Azure Data Lake Storage Gen2.\")\r\n",
-					"\r\n",
-					"# Display sample data and schema\r\n",
-					"print(\"\\nSample data for scientists:\")\r\n",
-					"df_for_scientists.show(5)\r\n",
-					"print(\"\\nSchema for scientists data:\")\r\n",
-					"df_for_scientists.printSchema()\r\n",
-					"\r\n",
-					"print(\"\\nSample data for analysts:\")\r\n",
-					"df_for_analysts.show(5)\r\n",
-					"print(\"\\nSchema for analysts data:\")\r\n",
-					"df_for_analysts.printSchema()\r\n",
 					""
-				],
-				"execution_count": 8
+				]
 			},
 			{
 				"cell_type": "code",
@@ -296,106 +330,6 @@
 					"collapsed": false
 				},
 				"source": [
-					"from pyspark.sql import SparkSession\r\n",
-					"from pyspark.sql.functions import to_date, to_timestamp, col, lit, sum, avg, count , concat\r\n",
-					"\r\n",
-					"# Create a SparkSession\r\n",
-					"spark = SparkSession.builder.appName(\"ZeroG Airline Data Pipeline\").getOrCreate()\r\n",
-					"\r\n",
-					"# Load data from temporary views (replace with your actual data sources)\r\n",
-					"df_loading = spark.sql(\"SELECT * FROM TempView_loading\")\r\n",
-					"df_sales = spark.sql(\"SELECT * FROM TempView_sales\")\r\n",
-					"df_pax = spark.sql(\"SELECT * FROM TempView_pax\")\r\n",
-					"\r\n",
-					"df_loading = df_loading.withColumnRenamed(\"Flight Month/Year\", \"FlightMonthYear\")\r\n",
-					"\r\n",
-					"# df_pax.printSchema()\r\n",
-					"\r\n",
-					"# Ensure that the `Flight` column exists in all dataframes\r\n",
-					"if \"Flight\" not in df_loading.columns:\r\n",
-					"    df_loading = df_loading.withColumn(\"Flight\", lit(\"Unknown\"))\r\n",
-					"if \"Flight\" not in df_sales.columns:\r\n",
-					"    df_sales = df_sales.withColumn(\"Flight\", lit(\"Unknown\"))\r\n",
-					"if \"Flight\" not in df_pax.columns:\r\n",
-					"    df_pax = df_pax.withColumn(\"Flight\", lit(\"Unknown\"))\r\n",
-					"\r\n",
-					"# # Ensure that the `FlightDate` column exists in all dataframes\r\n",
-					"# if \"FlightDate\" not in df_loading.columns:\r\n",
-					"#     df_loading = df_loading.withColumn(\"FlightDate\", to_date(col(\"FlightMonthYear\"), \"yyyy-MM-dd\"))\r\n",
-					"# # Convert the \"Date\" column to a date format\r\n",
-					"# df_sales = df_sales.withColumn(\"Date\", to_date(col(\"Date\"), \"yyyy-MM-dd\"))\r\n",
-					"# # Assuming \"FlightMonthYear\" exists in df_loading\r\n",
-					"# if \"FlightDate\" not in df_pax.columns:\r\n",
-					"#     df_pax = df_pax.withColumn(\"FlightDate\", to_date(col(\"FlightMonthYear\"), \"yyyy-MM-dd\")) \r\n",
-					"     \r\n",
-					"if \"FlightDate\" not in df_loading.columns:\r\n",
-					"    df_loading = df_loading.withColumn(\"FlightDate\", to_date(col(\"FlightMonthYear\"), \"yyyy-MM-dd\"))\r\n",
-					"if \"FlightDate\" not in df_sales.columns:\r\n",
-					"    df_sales = df_sales.withColumn(\"FlightDate\", to_date(col(\"Date\"), \"yyyy-MM-dd\"))  # Assuming \"Date\" is the source in sales\r\n",
-					"if \"FlightDate\" not in df_pax.columns:\r\n",
-					"    df_pax = df_pax.withColumn(\"FlightDate\", to_date(col(\"Date\"), \"yyyy-MM-dd\"))  # Assuming \"FlightMonthYear\" is the source in pax\r\n",
-					"\r\n",
-					"\r\n",
-					"\r\n",
-					"# Join dataframes based on `Flight`\r\n",
-					"df_joined = df_sales.join(df_loading.alias(\"loading\"), \"Flight\", \"outer\").join(df_pax.alias(\"pax\"), \"Flight\", \"outer\")\r\n",
-					"\r\n",
-					"# Data cleaning and transformation\r\n",
-					"df_cleaned = df_joined.withColumn(\"FlightDate\", to_date(\"FlightDate\", \"yyyy-MM-dd\")) \\\r\n",
-					"                     .withColumn(\"TransactionDate\", to_date(\"TransactionDate\", \"yyyy-MM-dd\")) \\\r\n",
-					"                     .withColumn(\"FlightDateTime\", to_timestamp(\"FlightDateTime\", \"yyyy-MM-dd HH:mm:ss\")) \\\r\n",
-					"                     .withColumn(\"TransactionDateTime\", to_timestamp(\"TransactionDateTime\", \"yyyy-MM-dd HH:mm:ss\")) \\\r\n",
-					"                     .withColumn(\"Quantity\", col(\"Quantity\").cast(\"integer\")) \\\r\n",
-					"                     .withColumn(\"CostPrice\", col(\"CostPrice\").cast(\"double\")) \\\r\n",
-					"                     .withColumn(\"NetSales\", col(\"NetSales\").cast(\"double\")) \\\r\n",
-					"                     .withColumn(\"VAT\", col(\"VAT\").cast(\"double\")) \\\r\n",
-					"                     .withColumn(\"GrossSales\", col(\"GrossSales\").cast(\"double\")) \\\r\n",
-					"                     .withColumn(\"TotalSales\", col(\"TotalSales\").cast(\"double\")) \\\r\n",
-					"                     .withColumn(\"Cash\", col(\"Cash\").cast(\"double\")) \\\r\n",
-					"                     .withColumn(\"Card\", col(\"Card\").cast(\"double\")) \\\r\n",
-					"                     .withColumn(\"Voucher\", col(\"Voucher\").cast(\"double\")) \\\r\n",
-					"                     .withColumn(\"BaseCurrencyPrice\", col(\"BaseCurrencyPrice\").cast(\"double\")) \\\r\n",
-					"                     .withColumn(\"VatRateValue\", col(\"VatRateValue\").cast(\"double\"))\r\n",
-					"\r\n",
-					"# Feature engineering\r\n",
-					"df_cleaned = df_cleaned.withColumn(\"FlightDuration\", (col(\"ScheduleActualArrivalTime\") - col(\"ScheduleActualDepartureTime\")).cast(\"long\")) \\\r\n",
-					"                     .withColumn(\"AvgSoldPerPassenger\", (col(\"TotalSales\") / col(\"PassengerCount\")).when(col(\"PassengerCount\") > 0, lit(0))) \\\r\n",
-					"                     .withColumn(\"AvgLoadedPerPassenger\", (col(\"TotalLoaded\") / col(\"PassengerCount\")).when(col(\"PassengerCount\") > 0, lit(0)))\r\n",
-					"\r\n",
-					"# Data aggregation for data analysts\r\n",
-					"df_analysts = df_cleaned.groupBy(\"Flight\").agg(\r\n",
-					"    sum(\"TotalSales\").alias(\"TotalRevenue\"),\r\n",
-					"    avg(\"TotalSales\" / \"PassengerCount\").alias(\"AvgRevenuePerPassenger\"),\r\n",
-					"    sum(\"TotalLoaded\").alias(\"TotalLoaded\"),\r\n",
-					"    avg(\"TotalLoaded\" / \"PassengerCount\").alias(\"AvgLoadedPerPassenger\"),\r\n",
-					"    count(\"PassengerID\").alias(\"TotalPassengers\")\r\n",
-					")\r\n",
-					"\r\n",
-					"# Save data to Parquet files (or other suitable format)\r\n",
-					"df_analysts.write.parquet(\"analysts_data.parquet\")\r\n",
-					"\r\n",
-					"# For data scientists, you might want to save the entire cleaned dataframe or specific features\r\n",
-					"df_cleaned.write.parquet(\"scientists_data.parquet\")"
-				],
-				"execution_count": 40
-			},
-			{
-				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					},
-					"collapsed": false
-				},
-				"source": [
-					"from pyspark.sql import SparkSession\r\n",
-					"from pyspark.sql.functions import to_date, to_timestamp, col, lit, sum, avg, count, concat, when\r\n",
 					"\r\n",
 					"# Create a SparkSession\r\n",
 					"spark = SparkSession.builder.appName(\"ZeroG Airline Data Pipeline\").getOrCreate()\r\n",
@@ -425,57 +359,36 @@
 					"\r\n",
 					"df_pax = df_pax.withColumnRenamed(\"Flight Number\", \"Flight\")\r\n",
 					"\r\n",
-					"# # Print schemas to verify column names\r\n",
-					"# print(\"Loading DataFrame Schema:\")\r\n",
-					"# df_loading.printSchema()\r\n",
-					"# print(\"Sales DataFrame Schema:\")\r\n",
-					"# df_sales.printSchema()\r\n",
-					"# print(\"Passenger DataFrame Schema:\")\r\n",
-					"# df_pax.printSchema()\r\n",
-					"\r\n",
-					"# # Convert date columns to a consistent format\r\n",
-					"# for df in [df_loading, df_sales, df_pax]:\r\n",
-					"#     df = df.withColumn(\"FlightDate\", to_date(col(\"Date\"), \"yyyy-MM-dd\"))\r\n",
-					"\r\n",
-					"# Convert date columns to a consistent format\r\n",
+					"# Converting date columns for a consistent format\r\n",
 					"df_loading = df_loading.withColumn(\"FlightDate\", to_date(col(\"Date\"), \"yyyy-MM-dd\"))\r\n",
 					"df_sales = df_sales.withColumn(\"FlightDate\", to_date(col(\"Date\"), \"yyyy-MM-dd\"))\r\n",
 					"df_pax = df_pax.withColumn(\"FlightDate\", to_date(col(\"Date\"), \"yyyy-MM-dd\"))\r\n",
 					"\r\n",
-					"# Join dataframes based on `Flight` and `FlightDate`\r\n",
+					"# Joining dataframes based on `Flight` and `FlightDate`\r\n",
 					"df_joined = df_sales.join(df_loading, [\"Flight\", \"FlightDate\"], \"outer\") \\\r\n",
 					"                   .join(df_pax, [\"Flight\", \"FlightDate\"], \"outer\")\r\n",
 					"\r\n",
 					"\r\n",
-					"df_joined = df_joined.drop(\"tempview_pax.Boarded Y\")  # Or df_joined.drop(\"tempview_sales.Boarded Y\")\r\n",
+					"df_joined = df_joined.drop(\"tempview_pax.Boarded Y\")  \r\n",
 					"df_joined = df_joined.drop(\"tempview_pax.Capacity Physical Y\")\r\n",
-					"\r\n",
-					"# # Print schemas to verify column names\r\n",
-					"# print(\"Loading DataFrame Schema:\")\r\n",
-					"# df_loading.printSchema()\r\n",
-					"# print(\"Sales DataFrame Schema:\")\r\n",
-					"# df_sales.printSchema()\r\n",
-					"# print(\"Passenger DataFrame Schema:\")\r\n",
-					"# df_pax.printSchema()\r\n",
 					"\r\n",
 					"df_cleaned = df_joined.select(\r\n",
 					"    \"Flight\",\r\n",
 					"    \"FlightDate\",\r\n",
-					"    col(\"SalesBoardedY\").cast(\"integer\").alias(\"BoardedPassengers\"),  # Use the new column name\r\n",
-					"    col(\"SalesCapacityPhysicalY\").cast(\"integer\").alias(\"PhysicalCapacity\"),  # Use the new column name\r\n",
-					"    col(\"Airline\"),  # From df_loading\r\n",
-					"    col(\"Aircraft Type\").alias(\"AircraftType\"),  # From df_loading\r\n",
-					"    col(\"Arrival Unit\").alias(\"ArrivalUnit\"),  # From df_loading\r\n",
-					"    col(\"Departure Unit\").alias(\"DepartureUnit\"),  # From df_loading\r\n",
-					"    col(\"Invoice Quantity\").cast(\"integer\").alias(\"InvoiceQuantity\"),  # From df_loading\r\n",
-					"    col(\"Price\").cast(\"double\"),  # From df_loading - assuming it's numeric\r\n",
+					"    col(\"SalesBoardedY\").cast(\"integer\").alias(\"BoardedPassengers\"), \r\n",
+					"    col(\"SalesCapacityPhysicalY\").cast(\"integer\").alias(\"PhysicalCapacity\"), \r\n",
+					"    col(\"Airline\"),  \r\n",
+					"    col(\"Aircraft Type\").alias(\"AircraftType\"), \r\n",
+					"    col(\"Arrival Unit\").alias(\"ArrivalUnit\"), \r\n",
+					"    col(\"Departure Unit\").alias(\"DepartureUnit\"), \r\n",
+					"    col(\"Invoice Quantity\").cast(\"integer\").alias(\"InvoiceQuantity\"), \r\n",
+					"    col(\"Price\").cast(\"double\"), \r\n",
 					"    col(\"Booking Class CBASE\") \r\n",
 					")\r\n",
 					"\r\n",
 					"from pyspark.sql.functions import when, col, lit, split\r\n",
 					"\r\n",
 					"\r\n",
-					"# Feature engineering (without IsDomestic)\r\n",
 					"df_cleaned = df_cleaned.withColumn(\r\n",
 					"    \"LoadFactor\",\r\n",
 					"    (col(\"BoardedPassengers\") / col(\"PhysicalCapacity\")) * 100\r\n",
@@ -500,32 +413,61 @@
 					"\r\n",
 					"# Data aggregation for data analysts\r\n",
 					"df_analysts = df_cleaned.groupBy(\"Flight\").agg(\r\n",
-					"    sum(\"InvoiceQuantity\").alias(\"TotalItemsSold\"),  # Use \"InvoiceQuantity\" for items sold\r\n",
+					"    sum(\"InvoiceQuantity\").alias(\"TotalItemsSold\"), \r\n",
 					"    sum(\"BoardedPassengers\").alias(\"TotalPassengers\"),\r\n",
 					"    avg(\"EstimatedRevenue\").alias(\"AvgRevenue\") \r\n",
-					"    # ... add more relevant aggregations for analysts ...\r\n",
 					")\r\n",
 					"\r\n",
 					"# Data aggregation for data scientists\r\n",
 					"df_scientists = df_cleaned.select(\r\n",
 					"    \"Flight\", \r\n",
 					"    \"BoardedPassengers\", \r\n",
-					"    \"InvoiceQuantity\",  # Use \"InvoiceQuantity\" for items sold\r\n",
+					"    \"InvoiceQuantity\", \r\n",
 					"    \"LoadFactor\",\r\n",
 					"    \"EstimatedRevenue\",\r\n",
-					"    \"AvgRevenuePerPassenger\",\r\n",
-					"    # ... add more relevant columns for scientists ...\r\n",
+					"    \"AvgRevenuePerPassenger\"\r\n",
 					")\r\n",
 					"display(df_analysts)\r\n",
 					"\r\n",
-					"display(df_scientists)\r\n",
-					"\r\n",
-					"# # Save data to Parquet files in the specified paths\r\n",
-					"# df_scientists.write.mode(\"overwrite\").parquet(\"abfss://processed@synapsesazerog.dfs.core.windows.net/data_for_scientists/\")\r\n",
-					"# df_analysts.write.mode(\"overwrite\").parquet(\"abfss://processed@synapsesazerog.dfs.core.windows.net/data_for_analysts/\")\r\n",
-					""
+					"display(df_scientists)"
 				],
 				"execution_count": 81
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### WRITE THE DATA IN PROCESSED "
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Save data to Parquet files in the specified paths\r\n",
+					"\r\n",
+					"df_scientists.write.mode(\"overwrite\").parquet(\"abfss://processed@synapsesazerog.dfs.core.windows.net/data_for_scientists/\")\r\n",
+					"\r\n",
+					"df_analysts.write.mode(\"overwrite\").parquet(\"abfss://processed@synapsesazerog.dfs.core.windows.net/data_for_analysts/\")\r\n",
+					""
+				],
+				"execution_count": null
 			}
 		]
 	}
