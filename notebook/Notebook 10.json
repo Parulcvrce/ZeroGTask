@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "5e87a264-42d0-4766-b998-37fc92ecdad6"
+				"spark.autotune.trackingId": "a56f0183-e986-4513-b301-a663a21c694f"
 			}
 		},
 		"metadata": {
@@ -63,8 +63,9 @@
 				},
 				"source": [
 					"from pyspark.sql import SparkSession\r\n",
-					"from pyspark.sql.functions import to_date, to_timestamp, col, lit, sum, avg, count, concat, when\r\n",
-					"from pyspark.sql.functions import when, col, lit, split"
+					"from pyspark.sql.functions import to_date, to_timestamp, col, lit, sum, avg, count, concat, \r\n",
+					"from pyspark.sql.functions import when, col, lit, split\r\n",
+					""
 				],
 				"execution_count": null
 			},
